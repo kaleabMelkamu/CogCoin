@@ -11,15 +11,18 @@ export const connectToPeers = (newPeer: string) => {
     const ws = new WebSocket(newPeer);
     ws.on('open', () => {
         initConnection(ws);
+        console.log('Successfully connected to peer: ' + newPeer);
     });
     ws.on('error', () => {
         console.log('Connection failed');
+        setTimeout(() => connectToPeers(newPeer), 5000);
     });
 };
 
 const initConnection = (ws: WebSocket) => {
     sockets.push(ws);
     initMessageHandler(ws);
+    ws.send(JSON.stringify(queryChainLengthMsg()));
 };
 
 const initMessageHandler = (ws: WebSocket) => {
@@ -66,6 +69,39 @@ const responseLatestMsg = (): Message => ({
     data: JSON.stringify([getLatestBlock()]),
 });
 
+// const handleBlockchainResponse = (message: Message) => {
+//     const receivedBlocks: Block[] = JSON.parse(message.data).sort((b1: Block, b2: Block) => (b1.index - b2.index));
+//     const latestBlockReceived = receivedBlocks[receivedBlocks.length - 1];
+//     const latestBlockHeld = getLatestBlock();
+
+//     if (latestBlockReceived.index > latestBlockHeld.index) {
+//         if (latestBlockHeld.hash === latestBlockReceived.previousHash) {
+//             addBlock(latestBlockReceived);
+//         } else {
+//             console.log('Blockchain behind, need to sync');
+//         }
+//     }
+// };
+
+// const handleBlockchainResponse = (message: Message) => {
+//     const receivedBlocks: Block[] = JSON.parse(message.data).sort((b1: Block, b2: Block) => (b1.index - b2.index));
+//     const latestBlockReceived = receivedBlocks[receivedBlocks.length - 1];
+//     const latestBlockHeld = getLatestBlock();
+
+//     if (latestBlockReceived.index > latestBlockHeld.index) {
+//         console.log('Blockchain behind. Syncing...');
+//         if (latestBlockHeld.hash === latestBlockReceived.previousHash) {
+//             // If the latest block in the peer is directly linked to our latest block, we just add it
+//             addBlock(latestBlockReceived);
+//             broadcastLatest(); // Notify other peers about the latest block
+//         } else {
+//             // Request the full blockchain from the peer if we are significantly behind
+//             console.log('Requesting full blockchain sync');
+//             ws.send(JSON.stringify(queryAllMsg())); // Request all blocks
+//         }
+//     }
+// };
+
 const handleBlockchainResponse = (message: Message) => {
     const receivedBlocks: Block[] = JSON.parse(message.data).sort((b1: Block, b2: Block) => (b1.index - b2.index));
     const latestBlockReceived = receivedBlocks[receivedBlocks.length - 1];
@@ -73,12 +109,18 @@ const handleBlockchainResponse = (message: Message) => {
 
     if (latestBlockReceived.index > latestBlockHeld.index) {
         if (latestBlockHeld.hash === latestBlockReceived.previousHash) {
+            // Add the new block
             addBlock(latestBlockReceived);
+            broadcastLatest();
         } else {
-            console.log('Blockchain behind, need to sync');
+            // Replace the entire chain if the received one is valid
+            console.log('Syncing full blockchain');
+            
         }
     }
 };
+
+
 
 
 
