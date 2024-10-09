@@ -30,7 +30,7 @@ let blockchain: Block[] = [genesisBlock];
 // in seconds
 const BLOCK_GENERATION_INTERVAL: number = 10;
 // in blocks
-const DIFFICULTY_ADJUSTMENT_INTERVAL: number = 4;
+const DIFFICULTY_ADJUSTMENT_INTERVAL: number = 10;
 
 const getBlockchain = (): Block[] => blockchain;
 
