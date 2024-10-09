@@ -1,7 +1,7 @@
 import * as bodyParser from 'body-parser';
 import express from 'express';
 
-import {Block, generateNextBlock, getBlockchain} from './block';
+import {Block, generateNextBlock, getBlockchain, getCurrentDifficulty } from './block';
 import {connectToPeers, getSockets, initP2PServer} from './p2p';
 
 const httpPort: number = parseInt(process.env.HTTP_PORT || '3001');
@@ -24,6 +24,12 @@ const initHttpServer = (myHttpPort: number) => {
     app.post('/addPeer', (req, res) => {
         connectToPeers(req.body.peer);
         res.send();
+    });
+
+    app.get('/difficulty', (req, res) =>
+    {
+        const difficulty = getCurrentDifficulty();
+        res.send( {difficulty});
     });
 
     app.listen(myHttpPort, () => {

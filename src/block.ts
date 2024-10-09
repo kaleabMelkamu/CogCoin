@@ -28,9 +28,9 @@ const genesisBlock: Block = new Block(
 
 let blockchain: Block[] = [genesisBlock];
 // in seconds
-const BLOCK_GENERATION_INTERVAL: number = 30;
+const BLOCK_GENERATION_INTERVAL: number = 10;
 // in blocks
-const DIFFICULTY_ADJUSTMENT_INTERVAL: number = 10;
+const DIFFICULTY_ADJUSTMENT_INTERVAL: number = 4;
 
 const getBlockchain = (): Block[] => blockchain;
 
@@ -48,19 +48,24 @@ const hashMatchesDifficulty = (hash: string, difficulty: number): boolean => {
     return hashInBinary.startsWith(requiredPrefix);
 };
 
-
+const getAdjustedBlock = (blocksBack: number): Block => {
+    const latestBlockIndex = getLatestBlock().index;
+    return blockchain[Math.max(latestBlockIndex - blocksBack, 0)];
+};
 
 
 const adjustDifficulty = (previousBlock: Block, currentTimestamp: number): number => {
-    const expectedTime: number = BLOCK_GENERATION_INTERVAL * DIFFICULTY_ADJUSTMENT_INTERVAL; // Total expected time
-    const actualTime: number = currentTimestamp - previousBlock.timestamp; // Time taken to mine the last block
+    const lastAdjustedBlock = getAdjustedBlock(DIFFICULTY_ADJUSTMENT_INTERVAL); 
+    const timeExpected = BLOCK_GENERATION_INTERVAL * DIFFICULTY_ADJUSTMENT_INTERVAL;
+    const timeTaken = currentTimestamp - lastAdjustedBlock.timestamp; 
 
-    if (actualTime < expectedTime / 2) {
+    if (timeTaken < timeExpected / 2) {
         return previousBlock.difficulty + 1; // Increase difficulty
-    } else if (actualTime > expectedTime * 2) {
+    } else if (timeTaken > timeExpected * 2) {
         return previousBlock.difficulty - 1; // Decrease difficulty
+    } else {
+        return previousBlock.difficulty; 
     }
-    return previousBlock.difficulty; // Keep the same difficulty
 };
 
 
@@ -88,7 +93,9 @@ const generateNextBlock = (blockData: string): Block => {
 
     const nonce: number = 0; 
     const nextHash: string = calculateHash(nextIndex, previousBlock.hash, nextTimestamp, blockData, newDifficulty, nonce);
-    const newBlock: Block = new Block(nextIndex, nextHash, previousBlock.hash, nextTimestamp, blockData, newDifficulty, nonce)
+    // const newBlock: Block = new Block(nextIndex, nextHash, previousBlock.hash, nextTimestamp, blockData, newDifficulty, nonce);
+
+    const newBlock: Block = findBlock(nextIndex, previousBlock.hash, nextTimestamp, blockData, newDifficulty);
     addBlock(newBlock);
     broadcastLatest();
     return newBlock;
@@ -130,5 +137,9 @@ const isValidNewBlock = (newBlock: Block, previousBlock: Block): boolean => {
     return true;
 };
 
+const  getCurrentDifficulty = (): number => {
+    const latestBlock: Block = getLatestBlock();
+    return latestBlock.difficulty;
+};
 
-export { Block, getBlockchain, getLatestBlock, generateNextBlock,addBlock };
+export { Block, getBlockchain, getLatestBlock, generateNextBlock,addBlock,getCurrentDifficulty };
